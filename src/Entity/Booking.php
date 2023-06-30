@@ -15,6 +15,12 @@ class Booking
     private ?int $id = null;
 
     #[ORM\Column]
+    /**
+     * @Assert\Type(
+     *     type="integer",
+     *     message="El valor {{ value }} no es del {{ type }} válido."
+     * )
+     */
     private ?int $status = null;
 
     #[ORM\Column]
@@ -24,6 +30,10 @@ class Booking
     private ?\DateTimeInterface $deletedAt = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    /**
+     * 
+     * @Assert\Length(max = 255)
+     */
     private ?string $description = null;
 
     public function getId(): ?int

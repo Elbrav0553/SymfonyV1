@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\Booking;
+use App\Repository\BookingRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Exception;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -11,25 +12,27 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Serializer\SerializerInterface;
-/*
+
 header('Access-Control-Allow-Origin: *');
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE");
 header("Allow: GET, POST, OPTIONS, PUT, DELETE");
-*/
+
 
 
 #[Route('/booking')]
 class BookingController extends AbstractController
 {
     #[Route('/', name: 'app_booking_index', methods: ['GET'])]
-    public function index(EntityManagerInterface $entityManager, SerializerInterface $serializer): JsonResponse
+    public function index(EntityManagerInterface $entityManager, SerializerInterface $serializer, BookingRepository $bookingRepository): JsonResponse
     {
 
         $message = "KO";
         $data = "";
         try {
-            $booking =  $entityManager->getRepository(Booking::class)->findall();
+            //$booking =  $entityManager->getRepository(Booking::class)->findall();
+            $booking = $bookingRepository->findAllWithoutDeletedAt();
             $data = $booking;//$serializer->serialize($booking, 'array');
+            $message = "OK";
         } catch (Exception $exception) {
             //throw $th;
             $message = "KO" . $exception->getFile() . "@" . $exception->getLine() . " " . $exception->getMessage();
@@ -41,11 +44,12 @@ class BookingController extends AbstractController
         ]);
     }
     #[Route('/new', name: 'app_booking_new', methods: ['POST'])]
-    public function new(EntityManagerInterface $entityManager, Request $request): JsonResponse
+    public function new(EntityManagerInterface $entityManager, Request $request, BookingRepository $bookingRepository): JsonResponse
     {
         $message = "KO";
         $data = "";
         try {
+            
             $booking = new Booking();
             $parameter = json_decode($request->getContent(), true);
 
@@ -55,8 +59,10 @@ class BookingController extends AbstractController
             $booking->setCreatedAt(new \DateTimeImmutable());
             $booking->setDescription($parameter['description']);
 
-            $entityManager->persist($booking);
-            $entityManager->flush();
+            $bookingRepository->save($booking,true);
+            //$booking->save();
+            /*$entityManager->persist($booking);
+            $entityManager->flush();*/
             $message = 'OK';
             $data = 'Saved new booking with id ' . $booking->getId();
             //} catch (\Throwable $th) {
@@ -146,7 +152,7 @@ class BookingController extends AbstractController
             //} catch (\Throwable $th) {
         } catch (Exception $exception) {
             //throw $th;
-            $message = "KO" . $exception->getFile() . "@" . $exception->getLine() . " " . $exception->getMessage();
+            $message = "KO params " . $exception->getFile() . "@" . $exception->getLine() . " " . $exception->getMessage();
         }
 
 
