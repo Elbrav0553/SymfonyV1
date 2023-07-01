@@ -7,6 +7,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: BookingRepository::class)]
+
 class Booking
 {
     #[ORM\Id]
@@ -14,10 +15,11 @@ class Booking
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column]
+    #[ORM\Column(type: Types::INTEGER, nullable: false)]
     /**
+     * @Assert\NotNull
      * @Assert\Type(
-     *     type="integer",
+     *     type="numeric",
      *     message="El valor {{ value }} no es del {{ type }} válido."
      * )
      */
@@ -29,9 +31,9 @@ class Booking
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
     private ?\DateTimeInterface $deletedAt = null;
 
-    #[ORM\Column(length: 255, nullable: true)]
+    #[ORM\Column(length: 255, nullable: false)]
     /**
-     * 
+     * @Assert\NotNull
      * @Assert\Length(max = 255)
      */
     private ?string $description = null;
