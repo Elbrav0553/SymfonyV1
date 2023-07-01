@@ -22,15 +22,19 @@ header("Allow: GET, POST, OPTIONS, PUT, DELETE");
 #[Route('/booking')]
 class BookingController extends AbstractController
 {
+    public function __construct(
+        private BookingRepository $bookingRepository,
+        private EntityManagerInterface $entityManager
+    ){}
     #[Route('/', name: 'app_booking_index', methods: ['GET'])]
-    public function index(EntityManagerInterface $entityManager, SerializerInterface $serializer, BookingRepository $bookingRepository): JsonResponse
+    public function index(SerializerInterface $serializer): JsonResponse
     {
 
         $message = "KO";
         $data = "";
         try {
             //$booking =  $entityManager->getRepository(Booking::class)->findall();
-            $booking = $bookingRepository->findAllWithoutDeletedAt();
+            $booking = $this->bookingRepository->findAllWithoutDeletedAt();
             $data = $booking;//$serializer->serialize($booking, 'array');
             $message = "OK";
         } catch (Exception $exception) {
@@ -44,7 +48,7 @@ class BookingController extends AbstractController
         ]);
     }
     #[Route('/new', name: 'app_booking_new', methods: ['POST'])]
-    public function new(EntityManagerInterface $entityManager, Request $request, BookingRepository $bookingRepository): JsonResponse
+    public function new(Request $request): JsonResponse
     {
         $message = "KO";
         $data = "";
@@ -59,7 +63,7 @@ class BookingController extends AbstractController
             $booking->setCreatedAt(new \DateTimeImmutable());
             $booking->setDescription($parameter['description']);
 
-            $bookingRepository->save($booking,true);
+            $this->bookingRepository->save($booking,true);
             //$booking->save();
             /*$entityManager->persist($booking);
             $entityManager->flush();*/
@@ -84,39 +88,19 @@ class BookingController extends AbstractController
     }
 
     #[Route('/{id}', name: 'app_booking_show', methods: ['GET'])]
-    public function show(EntityManagerInterface $entityManager, SerializerInterface $serializer, int $id): JsonResponse
+    public function show(SerializerInterface $serializer, int $id): JsonResponse
     {
-        $message = "KO";
-        $data = "";
-        try {
-            $booking =  $entityManager->getRepository(Booking::class)->find($id);
-            $message = 'OK';
-            $data = $booking;//$serializer->serialize($booking, 'json');
-        } catch (Exception $exception) {
-            $message = "KO" . $exception->getFile() . "@" . $exception->getLine() . " " . $exception->getMessage();
-        }
-        if (!$booking) {
-            //throw $this->createNotFoundException(
-            //'No booking found for id ' . $id
-            //);
-            $message = "KO" . 'No booking found for id ' . $id;
-            $data = '';
-        }
-
-        return $this->json([
-            'message' => '/booking/{id} ' . $message,
-            'data' => $data,
-            'path' => 'src/Controller/BookingController.php',
-        ]);
+        return $booking =  $this->bookingRepository->findOrFail($id);
+          
     }
     #[Route('/{id}/edit', name: 'app_booking_edit', methods: ['POST'])]
-    public function edit(EntityManagerInterface $entityManager, SerializerInterface $serializer, Request $request, int $id): JsonResponse
+    public function edit(SerializerInterface $serializer, Request $request, int $id): JsonResponse
     {
         $message = "KO";
         $data = "";
         
         try {
-            $booking =  $entityManager->getRepository(Booking::class)->find($id);
+            $booking =  $this->entityManager->getRepository(Booking::class)->find($id);
             $message = 'OK';
             $data = $serializer->serialize($booking, 'json');
         } catch (Exception $exception) {
@@ -145,8 +129,8 @@ class BookingController extends AbstractController
             $booking->setCreatedAt(new \DateTimeImmutable());
             $booking->setDescription($parameter['description']);
 
-            $entityManager->persist($booking);
-            $entityManager->flush();
+            $this->entityManager->persist($booking);
+            $this->entityManager->flush();
             $message = 'OK';
             $data = 'Saved updated booking with id ' . $booking->getId();
             //} catch (\Throwable $th) {
@@ -163,12 +147,12 @@ class BookingController extends AbstractController
         ]);
     }
     #[Route('/{id}/delete', name: 'app_booking_delete', methods: ['POST','DELETE'])]
-    public function delete(EntityManagerInterface $entityManager, int $id): JsonResponse
+    public function delete(int $id): JsonResponse
     {
         $message = "KO";
         $data = "";
         try {
-            $booking =  $entityManager->getRepository(Booking::class)->find($id);
+            $booking =  $this->entityManager->getRepository(Booking::class)->find($id);
             $message = 'OK';
         } catch (Exception $exception) {
             $message = "KO" . $exception->getFile() . "@" . $exception->getLine() . " " . $exception->getMessage();
@@ -188,8 +172,12 @@ class BookingController extends AbstractController
         try {
             
             $bookingOldId = $booking->getId();
-            $entityManager->remove($booking);
-            $entityManager->flush();//si no no hace nada
+            
+            $booking->setDeletedAt(new \DateTimeImmutable());
+            $this->entityManager->persist($booking);
+            $this->entityManager->flush();
+            //$entityManager->remove($booking);
+            //$entityManager->flush();//si no no hace nada
             $message = 'OK';
             $data = 'DELETED booking with id ' . $bookingOldId;
             //} catch (\Throwable $th) {

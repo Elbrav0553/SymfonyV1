@@ -3,8 +3,12 @@
 namespace App\Repository;
 
 use App\Entity\Booking;
+use App\Service\ServiceException;
+use App\Service\ServiceExceptionData;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\Serializer\SerializerInterface;
 
 /**
  * @extends ServiceEntityRepository<Booking>
@@ -16,14 +20,14 @@ use Doctrine\Persistence\ManagerRegistry;
  */
 class BookingRepository extends ServiceEntityRepository
 {
-    public function __construct(ManagerRegistry $registry)
+    public function __construct(ManagerRegistry $registry, private SerializerInterface $serializer)
     {
         parent::__construct($registry, Booking::class);
     }
 
     public function save(Booking $entity, bool $flush = false): void
     {
-        $entity->setStatus(99);
+
         $this->getEntityManager()->persist($entity);
 
         if ($flush) {
@@ -40,18 +44,57 @@ class BookingRepository extends ServiceEntityRepository
         }
     }
 
-       /**
-        * @return Booking[] Returns an array of Booking objects
-        */
-       public function findAllWithoutDeletedAt(): array
-       {
-           return $this->createQueryBuilder('b')
-               ->andWhere('b.deletedAt is null ')
-               ->orderBy('b.id', 'ASC')
-               ->getQuery()
-               ->getResult()
-           ;
-       }
+    /**
+     * @return Booking[] Returns an array of Booking objects
+     */
+    public function findAllWithoutDeletedAt(): array
+    {
+        return $this->createQueryBuilder('b')
+            ->andWhere('b.deletedAt is null ')
+            ->orderBy('b.id', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+    /**
+     * @return Booking Returns Booking object
+     */
+    public function findOneWithoutDeletedAt($id): ?Booking
+    {
+        return $this->createQueryBuilder('b')
+            ->andWhere('b.id = :id ')
+            ->setParameter(':id', $id)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
+    public function findOrFail(int $id): JsonResponse
+    {
+        try {
+            $statusCode = 200;
+            $bookingData = $this->findOneWithoutDeletedAt($id);
+            $message = "User find";
+        } catch (\Throwable $th) {
+            //throw $th;
+            $statusCode = 500;
+            return new JsonResponse(null, $statusCode, []);
+        }
+
+        if (!$bookingData) {
+
+            $exceptionData = new ServiceExceptionData(404, 'Booking Not Found');
+
+            //throw new ServiceException($exceptionData);
+            $statusCode = 404;
+            $message = 'Booking Not Found';
+        }
+        $serializedData = $this->serializer->serialize($bookingData, 'json');
+
+        
+        return new JsonResponse($serializedData, $statusCode, [], true);
+
+
+        //return $booking;
+    }
 
     //    /**
     //     * @return Booking[] Returns an array of Booking objects
