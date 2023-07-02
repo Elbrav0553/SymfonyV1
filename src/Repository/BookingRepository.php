@@ -47,7 +47,6 @@ class BookingRepository extends ServiceEntityRepository
             ->orderBy('b.id', 'ASC')
             ->getQuery()
             ->getResult();
-        //->getAllOrNullResult();
     }
     public function save(Booking $entity, bool $flush = false): void
     {
@@ -69,8 +68,7 @@ class BookingRepository extends ServiceEntityRepository
         $booking->setDescription($params['description']);
         $errors = $this->validator->validate($booking);
         if (count($errors) > 0) {
-            // Hay errores de validación
-            // ...
+    
             $statusCode = 400;
             return new JsonResponse(null, $statusCode, []);
         }
@@ -107,8 +105,7 @@ class BookingRepository extends ServiceEntityRepository
         $bookingData->setDescription($params['description']);
         $errors = $this->validator->validate($bookingData);
         if (count($errors) > 0) {
-            // Hay errores de validación
-            // ...
+            
             $statusCode = 400;
             return new JsonResponse(null, $statusCode, []);
         }
@@ -140,8 +137,6 @@ class BookingRepository extends ServiceEntityRepository
         try {
             $statusCode = 200;
             $bookingData = $this->findAllWithoutDeletedAtQuery();
-            //dd($bookingData);
-            $message = "Users find";
         } catch (\Throwable $th) {
             //throw $th;
             $statusCode = 500;
@@ -187,9 +182,6 @@ class BookingRepository extends ServiceEntityRepository
 
 
         return new JsonResponse($serializedData, $statusCode, [], true);
-
-
-        //return $booking;
     }
 
     public function delete(int $id, bool $flush = false): JsonResponse
